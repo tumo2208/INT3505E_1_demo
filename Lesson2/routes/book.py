@@ -1,11 +1,15 @@
 from flask import Blueprint, request, jsonify
 from models import db, Book
-from utils import token_required
+from utils import token_required, checked_redis, saved_to_redis
 
 book_bp = Blueprint('books', __name__)
 
 @book_bp.route("/", methods=["GET"])
 def find_books():
+    cache_key = request.args.get("query")
+    if checked_redis(cache_key):
+        return checked_redis(cache_key)
+
     search = request.args.get("query")
     query = Book.query
 
@@ -18,7 +22,8 @@ def find_books():
     books = query.all()
     if not books:
         return jsonify({"message": "No books found."}), 404
-    return jsonify([
+
+    data = [
         {
             "id": b.id,
             "title": b.title,
@@ -26,7 +31,9 @@ def find_books():
             "num_copies": b.num_copies
         }
         for b in books
-    ]), 200
+    ]
+
+    return saved_to_redis(data, cache_key)
 
 @book_bp.route("/", methods=["POST"])
 @token_required(role='librarian')
