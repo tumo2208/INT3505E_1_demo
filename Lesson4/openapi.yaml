@@ -1,0 +1,287 @@
+openapi: 3.0.3
+info:
+  title: Library API
+  version: "1.0.0"
+  description: API for a simple library system (books, users, borrows). Based on provided Flask endpoints.
+servers:
+  - url: http://localhost:3001
+
+tags:
+  - name: Books
+    description: Operations related to books management
+  - name: Users
+    description: User authentication and user-related operations
+  - name: Borrows
+    description: Borrow requests and management
+
+paths:
+  /books/:
+    get:
+      tags:
+        - Books
+      summary: Find books
+      parameters:
+        - name: query
+          in: query
+          schema:
+            type: string
+          description: Search string for title or author (optional). Also used as cache key.
+      responses:
+        '200':
+          description: List of books found (from cache or DB)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Book'
+        '404':
+          description: No books found
+    post:
+      tags:
+        - Books
+      summary: Add a new book
+      description: Requires librarian role.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - author
+                - num_copies
+              properties:
+                title:
+                  type: string
+                author:
+                  type: string
+                num_copies:
+                  type: integer
+      responses:
+        '201':
+          description: Book added
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  msg:
+                    type: string
+                  id:
+                    type: integer
+        '401':
+          description: Unauthorized (invalid/absent token or role)
+
+      security:
+        - bearerAuth: []
+  /users/login:
+    post:
+      tags:
+        - Users
+      summary: User login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '201':
+          description: Returns access token and role
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                  role:
+                    type: string
+        '401':
+          description: Invalid credentials
+
+      security:
+        - bearerAuth: []
+  /users/my-borrows:
+    get:
+      tags:
+        - Users
+      summary: Get current user's borrow history
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Borrow history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Borrow'
+        '400':
+          description: No borrow history
+  /borrows:
+    post:
+      tags:
+        - Borrows
+      summary: Request borrow (user)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - book_id_list
+              properties:
+                book_id_list:
+                  type: array
+                  items:
+                    type: integer
+      responses:
+        '201':
+          description: Borrow request created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  msg:
+                    type: string
+                  id:
+                    type: integer
+        '400':
+          description: Bad request (empty list)
+  /borrows/pending:
+    get:
+      tags:
+        - Borrows
+      summary: List pending borrows (librarian)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Pending borrows
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Borrow'
+        '400':
+          description: No pending borrows
+  /borrows/{borrow_id}/approve:
+    put:
+      tags:
+        - Borrows
+      summary: Approve a borrow request (librarian)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: borrow_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Borrow approved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  msg:
+                    type: string
+                  due_date:
+                    type: string
+                    format: date
+        '400':
+          description: Already processed
+        '404':
+          description: Borrow not found
+  /borrows/{borrow_id}/return:
+    put:
+      tags:
+        - Borrows
+      summary: Mark borrow as returned (librarian)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: borrow_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Marked as returned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  msg:
+                    type: string
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Book:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        author:
+          type: string
+        num_copies:
+          type: integer
+    User:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+        role:
+          type: string
+    Borrow:
+      type: object
+      properties:
+        id:
+          type: integer
+        book_id_list:
+          type: array
+          items:
+            type: integer
+        status:
+          type: string
+        borrowed_at:
+          type: string
+          format: date-time
+        due_date:
+          type: string
+          format: date
+        returned_at:
+          type: string
+          format: date-time
