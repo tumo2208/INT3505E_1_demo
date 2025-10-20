@@ -2,7 +2,8 @@ from flask import Flask
 from config import DB_CONFIG, SECRET_KEY
 from models import db
 from flask_jwt_extended import JWTManager
-from routes.user import user_bp
+from routes.User.user_v1 import users_v1_bp
+from routes.User.user_v2 import users_v2_bp
 from routes.book import book_bp
 from routes.borrow import borrow_bp
 
@@ -21,7 +22,8 @@ with app.app_context():
 
 jwt = JWTManager(app)
 
-app.register_blueprint(user_bp, url_prefix='/users')
+app.register_blueprint(users_v1_bp, url_prefix='/api/v1/users')
+app.register_blueprint(users_v2_bp, url_prefix='/api/v2/users')
 app.register_blueprint(book_bp, url_prefix='/books')
 app.register_blueprint(borrow_bp, url_prefix='/borrows')
 

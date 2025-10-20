@@ -10,6 +10,10 @@ class User(db.Model):
     email = db.Column(db.String(255), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
     role = db.Column(db.Enum('user','librarian'), default='user')
+    phone = db.Column(db.String(255))
+
+    def set_password(self, password):
+        self.password = bcrypt.hash(password)
 
     def verify(self, pw):
         return bcrypt.verify(pw, self.password)
