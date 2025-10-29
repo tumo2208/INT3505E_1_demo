@@ -7,6 +7,8 @@ book_bp = Blueprint('books', __name__)
 @book_bp.route("/", methods=["GET"])
 def find_books():
     cache_key = request.args.get("query")
+    if not cache_key:
+        cache_key = "AKA_FIND_BOOK_EMPTY_QUERY"
     if checked_redis(cache_key):
         return checked_redis(cache_key)
 
