@@ -12,9 +12,13 @@ app.use(bodyParser.json());
 app.use("/auth", authRoutes);
 
 app.get("/user/profile", authenticateToken, (req, res) => {
+    console.log(req.user);
     res.json({ message: "Welcome!", user: req.user });
+
 });
 
 app.listen(process.env.PORT, () => {
     console.log(`Server running at http://localhost:${process.env.PORT}`);
 });
+
+export default app;
