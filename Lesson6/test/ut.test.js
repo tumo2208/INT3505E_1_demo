@@ -6,7 +6,6 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-// Mock db và redisClient TRƯỚC KHI import app
 jest.unstable_mockModule("../db.js", () => ({
     db: {
         execute: jest.fn(),
@@ -48,7 +47,7 @@ describe("User Authentication and Profile API", () => {
             db.execute.mockResolvedValueOnce([{ affectedRows: 1 }]); // insert thành công
 
             const res = await request(app)
-                .post("/auth/register") // <-- Cập nhật đường dẫn
+                .post("/auth/register")
                 .send({
                     email: "new@example.com",
                     password: "123456",
@@ -65,7 +64,7 @@ describe("User Authentication and Profile API", () => {
             db.execute.mockResolvedValueOnce([[{ id: 1 }]]);
 
             const res = await request(app)
-                .post("/auth/register") // <-- Cập nhật đường dẫn
+                .post("/auth/register")
                 .send({
                     email: "exists@example.com",
                     password: "123456",
@@ -81,7 +80,7 @@ describe("User Authentication and Profile API", () => {
             db.execute.mockRejectedValueOnce(new Error("DB Error"));
 
             const res = await request(app)
-                .post("/auth/register") // <-- Cập nhật đường dẫn
+                .post("/auth/register")
                 .send({
                     email: "error@example.com",
                     password: "123456",
@@ -101,7 +100,7 @@ describe("User Authentication and Profile API", () => {
             ]);
 
             const res = await request(app)
-                .post("/auth/login") // <-- Cập nhật đường dẫn
+                .post("/auth/login")
                 .send({
                     email: "user@example.com",
                     password: "123456",
@@ -116,7 +115,7 @@ describe("User Authentication and Profile API", () => {
             db.execute.mockResolvedValueOnce([[]]);
 
             const res = await request(app)
-                .post("/auth/login") // <-- Cập nhật đường dẫn
+                .post("/auth/login")
                 .send({
                     email: "notfound@example.com",
                     password: "123456",
@@ -133,7 +132,7 @@ describe("User Authentication and Profile API", () => {
             ]);
 
             const res = await request(app)
-                .post("/auth/login") // <-- Cập nhật đường dẫn
+                .post("/auth/login")
                 .send({
                     email: "user@example.com",
                     password: "123456",
@@ -151,7 +150,7 @@ describe("User Authentication and Profile API", () => {
             redisClient.setEx.mockResolvedValueOnce("OK");
 
             const res = await request(app)
-                .post("/auth/logout") // <-- Cập nhật đường dẫn
+                .post("/auth/logout")
                 .set("Authorization", `Bearer ${token}`);
 
             expect(res.status).toBe(200);
@@ -167,14 +166,14 @@ describe("User Authentication and Profile API", () => {
         });
 
         it("should return 400 if missing token", async () => {
-            const res = await request(app).post("/auth/logout"); // <-- Cập nhật đường dẫn
+            const res = await request(app).post("/auth/logout");
             expect(res.status).toBe(400);
             expect(res.body.message).toBe("Missing token");
         });
 
         it("should return 400 if token is structurally invalid", async () => {
             const res = await request(app)
-                .post("/auth/logout") // <-- Cập nhật đường dẫn
+                .post("/auth/logout")
                 .set("Authorization", "Bearer invalidtoken");
 
             expect(res.status).toBe(400);
@@ -191,7 +190,7 @@ describe("User Authentication and Profile API", () => {
             // redisClient.get.mockResolvedValue(null) đã được set trong beforeEach
 
             const res = await request(app)
-                .get("/user/profile") // <-- Đường dẫn gốc từ app.js
+                .get("/user/profile")
                 .set("Authorization", `Bearer ${token}`);
 
             expect(res.status).toBe(200);
