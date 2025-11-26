@@ -4,11 +4,9 @@ import { v4 as uuidv4 } from 'uuid';
 const app = express();
 const PORT = 3000;
 
-// Middleware để parse JSON body
 app.use(express.json());
 
-// In-memory storage for demo purposes
-const transactions = [];
+// const transactions = [];
 
 // ============================================================================
 // DEPRECATION POLICY CONFIGURATION
@@ -38,14 +36,11 @@ const addDeprecationHeaders = (res) => {
 };
 
 // ============================================================================
-// API V1 - DEPRECATED ROUTES
+// LOGIC XỬ LÝ TỪNG PHIÊN BẢN (Controller Logic)
 // ============================================================================
 
-/**
- * Payment API v1 - Create Payment (DEPRECATED)
- * ⚠️ DEPRECATION NOTICE & SECURITY ISSUE: Plain 'card_number'
- */
-app.post('/api/v1/payments', (req, res) => {
+// Logic cho V1 (Cũ - Dùng card_number)
+const handleCreatePaymentV1 = (req, res) => {
     try {
         const data = req.body;
 
@@ -91,7 +86,7 @@ app.post('/api/v1/payments', (req, res) => {
             }
         };
 
-        transactions.push(transaction);
+        // transactions.push(transaction);
 
         addDeprecationHeaders(res);
         return res.status(201).json(transaction);
@@ -103,50 +98,10 @@ app.post('/api/v1/payments', (req, res) => {
             message: e.message
         });
     }
-});
+};
 
-/**
- * Get payment details by transaction ID (v1 - DEPRECATED)
- */
-app.get('/api/v1/payments/:transaction_id', (req, res) => {
-    const { transaction_id } = req.params;
-    const transaction = transactions.find(t => t.transaction_id === transaction_id);
-
-    addDeprecationHeaders(res);
-
-    if (transaction) {
-        return res.status(200).json(transaction);
-    }
-
-    return res.status(404).json({ error: 'Transaction not found' });
-});
-
-/**
- * List all transactions (v1 - DEPRECATED)
- */
-app.get('/api/v1/payments', (req, res) => {
-    addDeprecationHeaders(res);
-
-    const sunsetDateStr = V1_SUNSET_DATE.toISOString().split('T')[0];
-
-    return res.status(200).json({
-        version: 'v1',
-        status: 'deprecated',
-        total: transactions.length,
-        transactions: transactions,
-        _deprecation_notice: `This API will be shut down on ${sunsetDateStr}`
-    });
-});
-
-// ============================================================================
-// API V2 - CURRENT ROUTES
-// ============================================================================
-
-/**
- * Payment API v2 - Create Payment (CURRENT VERSION)
- * ✅ IMPROVEMENTS: Tokenized payment_method, PCI-DSS compliant
- */
-app.post('/api/v2/payments', (req, res) => {
+// Logic cho V2 (Mới - Dùng payment_method)
+const handleCreatePaymentV2 = (req, res) => {
     try {
         const data = req.body;
 
@@ -211,7 +166,7 @@ app.post('/api/v2/payments', (req, res) => {
             api_version: 'v2'
         };
 
-        transactions.push(transaction);
+        // transactions.push(transaction);
 
         return res.status(201).json(transaction);
 
@@ -221,31 +176,124 @@ app.post('/api/v2/payments', (req, res) => {
             message: e.message
         });
     }
-});
+};
+
+// ============================================================================
+// API V1 - DEPRECATED ROUTES
+// ============================================================================
 
 /**
- * Get payment details by transaction ID (v2)
+ * Payment API v1 - Create Payment (DEPRECATED)
+ * ⚠️ DEPRECATION NOTICE & SECURITY ISSUE: Plain 'card_number'
  */
-app.get('/api/v2/payments/:transaction_id', (req, res) => {
-    const { transaction_id } = req.params;
-    const transaction = transactions.find(t => t.transaction_id === transaction_id);
+app.post('/api/v1/payments', (req, res) => {
+    return handleCreatePaymentV1(req, res);
+});
 
-    if (transaction) {
-        return res.status(200).json(transaction);
+// /**
+//  * Get payment details by transaction ID (v1 - DEPRECATED)
+//  */
+// app.get('/api/v1/payments/:transaction_id', (req, res) => {
+//     const { transaction_id } = req.params;
+//     const transaction = transactions.find(t => t.transaction_id === transaction_id);
+//
+//     addDeprecationHeaders(res);
+//
+//     if (transaction) {
+//         return res.status(200).json(transaction);
+//     }
+//
+//     return res.status(404).json({ error: 'Transaction not found' });
+// });
+//
+// /**
+//  * List all transactions (v1 - DEPRECATED)
+//  */
+// app.get('/api/v1/payments', (req, res) => {
+//     addDeprecationHeaders(res);
+//
+//     const sunsetDateStr = V1_SUNSET_DATE.toISOString().split('T')[0];
+//
+//     return res.status(200).json({
+//         version: 'v1',
+//         status: 'deprecated',
+//         total: transactions.length,
+//         transactions: transactions,
+//         _deprecation_notice: `This API will be shut down on ${sunsetDateStr}`
+//     });
+// });
+
+// ============================================================================
+// API V2 - CURRENT ROUTES
+// ============================================================================
+
+/**
+ * Payment API v2 - Create Payment (CURRENT VERSION)
+ * ✅ IMPROVEMENTS: Tokenized payment_method, PCI-DSS compliant
+ */
+app.post('/api/v2/payments', (req, res) => {
+    return handleCreatePaymentV2(req, res);
+});
+
+// /**
+//  * Get payment details by transaction ID (v2)
+//  */
+// app.get('/api/v2/payments/:transaction_id', (req, res) => {
+//     const { transaction_id } = req.params;
+//     const transaction = transactions.find(t => t.transaction_id === transaction_id);
+//
+//     if (transaction) {
+//         return res.status(200).json(transaction);
+//     }
+//     return res.status(404).json({ error: 'Transaction not found' });
+// });
+//
+// /**
+//  * List all transactions (v2)
+//  */
+// app.get('/api/v2/payments', (req, res) => {
+//     return res.status(200).json({
+//         version: 'v2',
+//         status: 'current',
+//         total: transactions.length,
+//         transactions: transactions
+//     });
+// });
+
+// ============================================================================
+// ROUTING VỚI QUERY PARAM
+// ============================================================================
+
+/**
+ * Single Endpoint: POST /api/payments
+ * Dispatcher: Kiểm tra req.query.v để quyết định gọi hàm nào
+ */
+app.post('/api/payments', (req, res) => {
+    // Lấy version từ query param (hỗ trợ ?v=... hoặc ?version=...)
+    const version = req.query.v || req.query.version;
+
+    console.log(`Received request with version: ${version}`);
+
+    // ROUTING LOGIC (Switch-Case versioning)
+    switch (version) {
+        case '1':
+        case 'v1':
+            return handleCreatePaymentV1(req, res);
+
+        case '2':
+        case 'v2':
+            return handleCreatePaymentV2(req, res);
+
+        default:
+            // Nếu không truyền version, ta có thể:
+            // 1. Mặc định về version mới nhất (Risky)
+            // 2. Mặc định về version ổn định nhất (v1)
+            // 3. Báo lỗi bắt buộc phải có version
+
+            // Ở đây mình chọn cách 2: Mặc định là v1 (để tương thích ngược) nhưng log warning
+            console.log('No version specified. Defaulting to v1.');
+            return handleCreatePaymentV1(req, res);
     }
-    return res.status(404).json({ error: 'Transaction not found' });
-});
-
-/**
- * List all transactions (v2)
- */
-app.get('/api/v2/payments', (req, res) => {
-    return res.status(200).json({
-        version: 'v2',
-        status: 'current',
-        total: transactions.length,
-        transactions: transactions
-    });
 });
 
 // ============================================================================
